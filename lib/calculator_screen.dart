@@ -1,5 +1,24 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: CalculatorScreen(),
+    );
+  }
+}
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -15,6 +34,43 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   double _num2 = 0;
   String _operand = "";
   bool _isScientificMode = false;
+
+  // AdMob variables
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      size: AdSize.banner,
+      adUnitId: 'ca-app-pub-6983310077698718/7636255273', // ✅ REAL ID
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          debugPrint('Banner Ad Loaded');
+          setState(() {
+            _isAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('Banner Ad failed: $error');
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
 
   void _buttonPressed(String buttonText) {
     setState(() {
@@ -196,108 +252,124 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       ),
       body: Column(
         children: [
+
+          // 🔹 Banner Ad below AppBar
+          if (_isAdLoaded)
+            SizedBox(
+              height: _bannerAd!.size.height.toDouble(),
+              width: _bannerAd!.size.width.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
+
+          // 🔹 Calculator UI
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              alignment: Alignment.bottomRight,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _expression,
-                    style: const TextStyle(fontSize: 24, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _output,
-                    style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          if (_isScientificMode) ...[
-            Row(
+            child: Column(
               children: [
-                _buildButton("sin", backgroundColor: Colors.orange),
-                _buildButton("cos", backgroundColor: Colors.orange),
-                _buildButton("tan", backgroundColor: Colors.orange),
-                _buildButton("π", backgroundColor: Colors.orange),
-                _buildButton("e", backgroundColor: Colors.orange),
-              ],
-            ),
-            Row(
-              children: [
-                _buildButton("log", backgroundColor: Colors.orange),
-                _buildButton("ln", backgroundColor: Colors.orange),
-                _buildButton("√", backgroundColor: Colors.orange),
-                _buildButton("x²", backgroundColor: Colors.orange),
-                _buildButton("x!", backgroundColor: Colors.orange),
-              ],
-            ),
-          ],
-          Row(
-            children: [
-              _buildButton("C", backgroundColor: Colors.red),
-              _buildButton("⌫", backgroundColor: Colors.red),
-              _buildButton("±", backgroundColor: Colors.blue),
-              _buildButton("÷", backgroundColor: Colors.blue),
-              _buildButton("^", backgroundColor: Colors.blue),
-            ],
-          ),
-          Row(
-            children: [
-              _buildButton("7"),
-              _buildButton("8"),
-              _buildButton("9"),
-              _buildButton("×", backgroundColor: Colors.blue),
-              _buildButton("%", backgroundColor: Colors.blue),
-            ],
-          ),
-          Row(
-            children: [
-              _buildButton("4"),
-              _buildButton("5"),
-              _buildButton("6"),
-              _buildButton("-", backgroundColor: Colors.blue),
-              _buildButton("(", backgroundColor: Colors.blue),
-            ],
-          ),
-          Row(
-            children: [
-              _buildButton("1"),
-              _buildButton("2"),
-              _buildButton("3"),
-              _buildButton("+", backgroundColor: Colors.blue),
-              _buildButton(")", backgroundColor: Colors.blue),
-            ],
-          ),
-          Row(
-            children: [
-              _buildButton("0"),
-              _buildButton("."),
-              Expanded(
-                flex: 3,
-                child: Container(
-                  margin: const EdgeInsets.all(2),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () => _buttonPressed("="),
-                    child: const Text(
-                      "=",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    alignment: Alignment.bottomRight,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          _expression,
+                          style: const TextStyle(fontSize: 24, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _output,
+                          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ),
-            ],
+                const Divider(height: 1),
+                if (_isScientificMode) ...[
+                  Row(
+                    children: [
+                      _buildButton("sin", backgroundColor: Colors.orange),
+                      _buildButton("cos", backgroundColor: Colors.orange),
+                      _buildButton("tan", backgroundColor: Colors.orange),
+                      _buildButton("π", backgroundColor: Colors.orange),
+                      _buildButton("e", backgroundColor: Colors.orange),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      _buildButton("log", backgroundColor: Colors.orange),
+                      _buildButton("ln", backgroundColor: Colors.orange),
+                      _buildButton("√", backgroundColor: Colors.orange),
+                      _buildButton("x²", backgroundColor: Colors.orange),
+                      _buildButton("x!", backgroundColor: Colors.orange),
+                    ],
+                  ),
+                ],
+                Row(
+                  children: [
+                    _buildButton("C", backgroundColor: Colors.red),
+                    _buildButton("⌫", backgroundColor: Colors.red),
+                    _buildButton("±", backgroundColor: Colors.blue),
+                    _buildButton("÷", backgroundColor: Colors.blue),
+                    _buildButton("^", backgroundColor: Colors.blue),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _buildButton("7"),
+                    _buildButton("8"),
+                    _buildButton("9"),
+                    _buildButton("×", backgroundColor: Colors.blue),
+                    _buildButton("%", backgroundColor: Colors.blue),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _buildButton("4"),
+                    _buildButton("5"),
+                    _buildButton("6"),
+                    _buildButton("-", backgroundColor: Colors.blue),
+                    _buildButton("(", backgroundColor: Colors.blue),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _buildButton("1"),
+                    _buildButton("2"),
+                    _buildButton("3"),
+                    _buildButton("+", backgroundColor: Colors.blue),
+                    _buildButton(")", backgroundColor: Colors.blue),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _buildButton("0"),
+                    _buildButton("."),
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () => _buttonPressed("="),
+                          child: const Text(
+                            "=",
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
